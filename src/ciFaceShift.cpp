@@ -61,8 +61,7 @@ void ciFaceShift::handleConnect( const boost::system::error_code& error,
 				mStream,
 				boost::asio::transfer_at_least( 1 ),
 				boost::bind( &ciFaceShift::handleRead, this,
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred ) );
+					boost::asio::placeholders::error ) );
 	}
 	else if ( endpoint_iterator != tcp::resolver::iterator() )
 	{
@@ -72,9 +71,13 @@ void ciFaceShift::handleConnect( const boost::system::error_code& error,
 				boost::bind( &ciFaceShift::handleConnect, this,
 					boost::asio::placeholders::error, ++endpoint_iterator ) );
 	}
+	else
+	{
+		throw boost::system::system_error( error );
+	}
 }
 
-void ciFaceShift::handleRead( const boost::system::error_code& error, size_t bytesRead )
+void ciFaceShift::handleRead( const boost::system::error_code& error )
 {
 	if ( error )
 	{
@@ -154,13 +157,12 @@ void ciFaceShift::handleRead( const boost::system::error_code& error, size_t byt
 			}
 	}
 
-	mStream.consume( bytesRead );
+	mStream.consume( mStream.size() );
 	boost::asio::async_read( mSocket,
 			mStream,
 			boost::asio::transfer_at_least( 1 ),
 			boost::bind( &ciFaceShift::handleRead, this,
-				boost::asio::placeholders::error,
-				boost::asio::placeholders::bytes_transferred ) );
+				boost::asio::placeholders::error ) );
 }
 
 void ciFaceShift::doClose()

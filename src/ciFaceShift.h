@@ -41,7 +41,7 @@ class ciFaceShift
 	private:
 		void handleConnect( const boost::system::error_code& error,
 							boost::asio::ip::tcp::resolver::iterator endpoint_iterator );
-		void handleRead( const boost::system::error_code& error, size_t bytesRead );
+		void handleRead( const boost::system::error_code& error );
 		void doClose();
 
 		boost::asio::io_service mIoService;
