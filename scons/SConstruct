@@ -1,0 +1,10 @@
+env = Environment()
+
+env['APP_TARGET'] = 'fsTestApp'
+env['APP_SOURCES'] = ['fsTestApp.cpp', 'ciFaceShift.cpp']
+env['DEBUG'] = 1
+
+env.Append(CCFLAGS = ['-DBOOST_REGEX_NO_LIB'])
+
+SConscript('../../../scons/SConscript', exports = 'env')
+
