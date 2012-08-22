@@ -35,8 +35,20 @@ class ciFaceShift
 		ciFaceShift();
 		~ciFaceShift();
 
+		//! Connects to fsStudio. Only supports TCP/IP at the moment, which can be set in fsStudio Preferences/Streaming/Network/Protocol. The optional \a host and \a port parameters specify the fsStudio server.
 		void connect( std::string host = "127.0.0.1", std::string port = "33433" );
+		//! Closes the connection to fsStudio.
 		void close();
+
+		//! Returns head orientation.
+		ci::Quatf getRotation() const;
+		//! Returns head position in millimetres. This is relative position by default. Can be set to absolute in fsStudio Preferences/Streaming/Streaming Data/Head Pose.
+		ci::Vec3f getPosition() const;
+
+		//! Returns the timestamp of the last frame received.
+		double getTimestamp() const;
+		//! Returns true if the tracking of the last frame was successful.
+		bool isTrackingSuccessful() const;
 
 	private:
 		void handleConnect( const boost::system::error_code& error,
@@ -50,6 +62,7 @@ class ciFaceShift
 
 		enum
 		{
+			FS_DATA_CONTAINER_BLOCK = 33433,
 			FS_FRAME_INFO_BLOCK = 101,
 			FS_POSE_BLOCK = 102,
 			FS_BLENDSHAPES_BLOCK = 103,
@@ -64,8 +77,9 @@ class ciFaceShift
 		}
 
 		std::shared_ptr< boost::thread > mThread;
+		mutable boost::mutex mMutex;
 
-		double mTimeStamp;
+		double mTimestamp;
 		bool mTrackingSuccessful;
 		ci::Quatf mHeadOrientation;
 		ci::Vec3f mHeadPosition;

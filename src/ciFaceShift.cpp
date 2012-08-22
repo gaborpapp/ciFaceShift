@@ -27,7 +27,9 @@ using boost::asio::ip::tcp;
 namespace mndl { namespace faceshift {
 
 ciFaceShift::ciFaceShift() :
-	mSocket ( mIoService )
+	mSocket ( mIoService ),
+	mTimestamp( 0 ),
+	mTrackingSuccessful( false )
 {}
 
 ciFaceShift::~ciFaceShift()
@@ -95,10 +97,12 @@ void ciFaceShift::handleRead( const boost::system::error_code& error )
 	readRaw( is, versionNumber );
 	readRaw( is, blockSize );
 
-	uint16_t numberBlocks;
-	readRaw( is, numberBlocks );
-	for ( uint16_t i = 0; i < numberBlocks; ++i )
+	if ( blockId == FS_DATA_CONTAINER_BLOCK )
 	{
+		uint16_t numberBlocks;
+		readRaw( is, numberBlocks );
+		for ( uint16_t i = 0; i < numberBlocks; ++i )
+		{
 			readRaw( is, blockId );
 			readRaw( is, versionNumber );
 			readRaw( is, blockSize);
@@ -106,13 +110,18 @@ void ciFaceShift::handleRead( const boost::system::error_code& error )
 			switch ( blockId )
 			{
 				case FS_FRAME_INFO_BLOCK:
-					readRaw( is, mTimeStamp );
+				{
+					boost::lock_guard< boost::mutex > lock( mMutex );
+					readRaw( is, mTimestamp );
 					uint8_t success;
 					readRaw( is, success );
 					mTrackingSuccessful = ( success == 1 );
 					break;
+				}
 
 				case FS_POSE_BLOCK:
+				{
+					boost::lock_guard< boost::mutex > lock( mMutex );
 					readRaw( is, mHeadOrientation.v.x );
 					readRaw( is, mHeadOrientation.v.y );
 					readRaw( is, mHeadOrientation.v.z );
@@ -121,8 +130,11 @@ void ciFaceShift::handleRead( const boost::system::error_code& error )
 					readRaw( is, mHeadPosition.y );
 					readRaw( is, mHeadPosition.z );
 					break;
+				}
 
 				case FS_BLENDSHAPES_BLOCK:
+				{
+					boost::lock_guard< boost::mutex > lock( mMutex );
 					mBlendshapeWeights.clear();
 					uint32_t blendshapeCount;
 					readRaw( is, blendshapeCount );
@@ -133,15 +145,21 @@ void ciFaceShift::handleRead( const boost::system::error_code& error )
 						mBlendshapeWeights.push_back( blendshapeWeight );
 					}
 					break;
+				}
 
 				case FS_EYES_BLOCK:
+				{
+					boost::lock_guard< boost::mutex > lock( mMutex );
 					readRaw( is, mLeftEyeRotation.theta );
 					readRaw( is, mLeftEyeRotation.phi );
 					readRaw( is, mRightEyeRotation.theta );
 					readRaw( is, mRightEyeRotation.phi );
 					break;
+				}
 
 				case FS_MARKERS_BLOCK:
+				{
+					boost::lock_guard< boost::mutex > lock( mMutex );
 					mMarkers.clear();
 					uint16_t markerCount;
 					readRaw( is, markerCount );
@@ -154,7 +172,9 @@ void ciFaceShift::handleRead( const boost::system::error_code& error )
 						mMarkers.push_back( marker );
 					}
 					break;
+				}
 			}
+		}
 	}
 
 	mStream.consume( mStream.size() );
@@ -173,6 +193,30 @@ void ciFaceShift::doClose()
 void ciFaceShift::close()
 {
 	mIoService.post( boost::bind( &ciFaceShift::doClose, this ) );
+}
+
+Quatf ciFaceShift::getRotation() const
+{
+	boost::lock_guard< boost::mutex > lock( mMutex );
+	return mHeadOrientation;
+}
+
+Vec3f ciFaceShift::getPosition() const
+{
+	boost::lock_guard< boost::mutex > lock( mMutex );
+	return mHeadPosition;
+}
+
+double ciFaceShift::getTimestamp() const
+{
+	boost::lock_guard< boost::mutex > lock( mMutex );
+	return mTimestamp;
+}
+
+bool ciFaceShift::isTrackingSuccessful() const
+{
+	boost::lock_guard< boost::mutex > lock( mMutex );
+	return mTrackingSuccessful;
 }
 
 } } // mndl::faceshift

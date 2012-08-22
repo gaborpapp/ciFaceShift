@@ -15,8 +15,9 @@
  along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "cinder/Cinder.h"
 #include "cinder/app/AppBasic.h"
+#include "cinder/Camera.h"
+#include "cinder/Cinder.h"
 #include "cinder/gl/gl.h"
 #include "cinder/params/Params.h"
 
@@ -40,6 +41,11 @@ class fsTestApp : public AppBasic
 	private:
 		params::InterfaceGl mParams;
 
+		double mTimestamp;
+		bool mTrackingSuccessful;
+		Quatf mHeadRotation;
+		Vec3f mHeadPosition;
+
 		mndl::faceshift::ciFaceShift mFaceShift;
 };
 
@@ -52,18 +58,41 @@ void fsTestApp::setup()
 {
 	gl::disableVerticalSync();
 
-	mParams = params::InterfaceGl( "Parameters", Vec2i( 200, 300 ) );
+	mParams = params::InterfaceGl( "Parameters", Vec2i( 350, 300 ) );
+	mParams.addParam( "Timestamp", &mTimestamp, "", true );
+	mParams.addParam( "Tracking", &mTrackingSuccessful, "true='successful' false='failed'", true );
+	mParams.addParam( "Rotation", &mHeadRotation, "", true );
+	mParams.addParam( "Position", &mHeadPosition, "", true );
+	mParams.setOptions( "", "refresh=.1" );
 
 	mFaceShift.connect();
 }
 
 void fsTestApp::update()
 {
+	mTimestamp = mFaceShift.getTimestamp();
+	mTrackingSuccessful = mFaceShift.isTrackingSuccessful();
+	mHeadPosition = mFaceShift.getPosition();
+	mHeadPosition *= .001; // millimetres to metres
+	mHeadRotation = mFaceShift.getRotation();
 }
 
 void fsTestApp::draw()
 {
 	gl::clear( Color::black() );
+
+	CameraPersp cam( getWindowWidth(), getWindowHeight(), 60.0f );
+	cam.setPerspective( 60, getWindowAspectRatio(), 1, 1000 );
+	cam.lookAt( Vec3f( 0, 0, -5 ), Vec3f::zero() );
+	gl::setMatrices( cam );
+
+	gl::setViewport( getWindowBounds() );
+
+	gl::pushModelView();
+	gl::translate( mHeadPosition );
+	gl::rotate( mHeadRotation );
+	gl::drawCoordinateFrame();
+	gl::popModelView();
 
 	params::InterfaceGl::draw();
 }
