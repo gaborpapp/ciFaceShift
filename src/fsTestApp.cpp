@@ -51,18 +51,26 @@ class fsTestApp : public AppBasic
 
 void fsTestApp::prepareSettings( Settings *settings )
 {
-	settings->setWindowSize( 640, 480 );
+	settings->setWindowSize( 800, 600 );
 }
 
 void fsTestApp::setup()
 {
 	gl::disableVerticalSync();
 
-	mParams = params::InterfaceGl( "Parameters", Vec2i( 350, 300 ) );
+	mParams = params::InterfaceGl( "Parameters", Vec2i( 350, 550 ) );
 	mParams.addParam( "Timestamp", &mTimestamp, "", true );
 	mParams.addParam( "Tracking", &mTrackingSuccessful, "true='successful' false='failed'", true );
 	mParams.addParam( "Rotation", &mHeadRotation, "", true );
 	mParams.addParam( "Position", &mHeadPosition, "", true );
+
+	const vector< float >& weights = mFaceShift.getBlendshapeWeights();
+	for ( size_t i = 0; i < weights.size(); ++i )
+	{
+		mParams.addParam( mFaceShift.getBlendshapeName( i )
+				, const_cast< float * >( &weights[ i ] ), "group=Blendshapes", true );
+	}
+
 	mParams.setOptions( "", "refresh=.1" );
 
 	mFaceShift.connect();

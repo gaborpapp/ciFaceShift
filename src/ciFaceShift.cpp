@@ -17,6 +17,8 @@
 
 #include <iostream>
 
+#include <boost/assign.hpp>
+
 #include "cinder/app/App.h"
 
 #include "ciFaceShift.h"
@@ -26,11 +28,28 @@ using boost::asio::ip::tcp;
 
 namespace mndl { namespace faceshift {
 
+const std::vector< std::string > ciFaceShift::sBlendshapeNames =
+	boost::assign::list_of( "EyeBlink_L" )( "EyeBlink_R" )
+		( "EyeSquint_L" )( "EyeSquint_R" )
+		( "EyeDown_L" )( "EyeDown_R" )( "EyeIn_L" )( "EyeIn_R" )
+		( "EyeOpen_L" )( "EyeOpen_R" )( "EyeOut_L" )( "EyeOut_R" )
+		( "EyeUp_L" )( "EyeUp_R" )( "BrowsD_L" )( "BrowsD_R" )
+		( "BrowsU_C" )( "BrowsU_L" )( "BrowsU_R" )( "JawFwd" )
+		( "JawLeft" )( "JawOpen" )( "JawRight" )( "MouthLeft" )( "MouthRight" )
+		( "MouthFrown_L" )( "MouthFrown_R" )( "MouthSmile_L" )( "MouthSmile_R" )
+		( "MouthDimple_L" )( "MouthDimple_R" )( "LipsStretch_L" )( "LipsStretch_R" )
+		( "LipsUpperClose" )( "LipsLowerClose" )( "LipsUpperUp" )( "LipsLowerDown" )
+		( "LipsLowerOpen" )( "LipsFunnel" )( "LipsPucker" )
+		( "ChinLowerRaise" )( "ChinUpperRaise" )( "Sneer" )( "Puff" )
+		( "CheekSquint_L" )( "CheekSquint_R" );
+
 ciFaceShift::ciFaceShift() :
 	mSocket ( mIoService ),
 	mTimestamp( 0 ),
 	mTrackingSuccessful( false )
-{}
+{
+	mBlendshapeWeights.assign( sBlendshapeNames.size(), 0.f );
+}
 
 ciFaceShift::~ciFaceShift()
 {
@@ -135,14 +154,17 @@ void ciFaceShift::handleRead( const boost::system::error_code& error )
 				case FS_BLENDSHAPES_BLOCK:
 				{
 					boost::lock_guard< boost::mutex > lock( mMutex );
-					mBlendshapeWeights.clear();
 					uint32_t blendshapeCount;
 					readRaw( is, blendshapeCount );
+
+					if ( blendshapeCount != mBlendshapeWeights.size() )
+					{
+						mBlendshapeWeights.resize( blendshapeCount );
+					}
+
 					for ( uint32_t i = 0; i < blendshapeCount; ++i )
 					{
-						float blendshapeWeight;
-						readRaw( is, blendshapeWeight );
-						mBlendshapeWeights.push_back( blendshapeWeight );
+						readRaw( is, mBlendshapeWeights[ i ] );
 					}
 					break;
 				}
@@ -217,6 +239,26 @@ bool ciFaceShift::isTrackingSuccessful() const
 {
 	boost::lock_guard< boost::mutex > lock( mMutex );
 	return mTrackingSuccessful;
+}
+
+const std::vector< std::string >& ciFaceShift::getBlendshapeNames() const
+{
+	return sBlendshapeNames;
+}
+
+std::string ciFaceShift::getBlendshapeName( size_t i ) const
+{
+	return sBlendshapeNames[ i ];
+}
+
+const std::vector< float >& ciFaceShift::getBlendshapeWeights() const
+{
+	return mBlendshapeWeights;
+}
+
+float ciFaceShift::getBlendshapeWeight( size_t i ) const
+{
+	return mBlendshapeWeights[ i ];
 }
 
 } } // mndl::faceshift

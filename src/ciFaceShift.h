@@ -50,6 +50,18 @@ class ciFaceShift
 		//! Returns true if the tracking of the last frame was successful.
 		bool isTrackingSuccessful() const;
 
+		//! Returns the name of the blendshapes as a vector of strings.
+		const std::vector< std::string >& getBlendshapeNames() const;
+
+		//! Returns the name of the \a i'th blendshape.
+		std::string getBlendshapeName( size_t i ) const;
+
+		//! Returns the blendshape coefficients for the last frame received.
+		const std::vector< float >& getBlendshapeWeights() const;
+
+		//! Returns the \a i'th blendshape coefficient for the last frame received.
+		float getBlendshapeWeight( size_t i ) const;
+
 	private:
 		void handleConnect( const boost::system::error_code& error,
 							boost::asio::ip::tcp::resolver::iterator endpoint_iterator );
@@ -94,6 +106,8 @@ class ciFaceShift
 		SpCoordf mRightEyeRotation;
 
 		std::vector< ci::Vec3f > mMarkers;
+
+		static const std::vector< std::string > sBlendshapeNames;
 };
 
 } } // namespace mndl::faceshift
