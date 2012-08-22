@@ -45,6 +45,8 @@ class fsTestApp : public AppBasic
 		bool mTrackingSuccessful;
 		Quatf mHeadRotation;
 		Vec3f mHeadPosition;
+		Quatf mLeftEyeRotation;
+		Quatf mRightEyeRotation;
 
 		mndl::faceshift::ciFaceShift mFaceShift;
 };
@@ -63,6 +65,8 @@ void fsTestApp::setup()
 	mParams.addParam( "Tracking", &mTrackingSuccessful, "true='successful' false='failed'", true );
 	mParams.addParam( "Rotation", &mHeadRotation, "", true );
 	mParams.addParam( "Position", &mHeadPosition, "", true );
+	mParams.addParam( "Left eye rotation", &mLeftEyeRotation, "", true );
+	mParams.addParam( "Right eye rotation", &mRightEyeRotation, "", true );
 
 	const vector< float >& weights = mFaceShift.getBlendshapeWeights();
 	for ( size_t i = 0; i < weights.size(); ++i )
@@ -83,6 +87,8 @@ void fsTestApp::update()
 	mHeadPosition = mFaceShift.getPosition();
 	mHeadPosition *= .001; // millimetres to metres
 	mHeadRotation = mFaceShift.getRotation();
+	mLeftEyeRotation = mFaceShift.getLeftEyeRotation();
+	mRightEyeRotation = mFaceShift.getRightEyeRotation();
 }
 
 void fsTestApp::draw()

@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "cinder/Cinder.h"
+#include "cinder/CinderMath.h"
 #include "cinder/Vector.h"
 #include "cinder/Quaternion.h"
 
@@ -35,14 +36,19 @@ class ciFaceShift
 		ciFaceShift();
 		~ciFaceShift();
 
-		//! Connects to fsStudio. Only supports TCP/IP at the moment, which can be set in fsStudio Preferences/Streaming/Network/Protocol. The optional \a host and \a port parameters specify the fsStudio server.
+		/*! Connects to fsStudio.  The optional \a host and \a port parameters
+		 * specify the fsStudio server.
+		 * \note Only supports TCP/IP at the moment, which can be set in fsStudio Preferences/Streaming/Network/Protocol.
+		 */
 		void connect( std::string host = "127.0.0.1", std::string port = "33433" );
 		//! Closes the connection to fsStudio.
 		void close();
 
 		//! Returns head orientation.
 		ci::Quatf getRotation() const;
-		//! Returns head position in millimetres. This is relative position by default. Can be set to absolute in fsStudio Preferences/Streaming/Streaming Data/Head Pose.
+		/*! Returns head position in millimetres.
+		 * \note This is relative position by default. Can be set to absolute in fsStudio Preferences/Streaming/Streaming Data/Head Pose.
+		 */
 		ci::Vec3f getPosition() const;
 
 		//! Returns the timestamp of the last frame received.
@@ -61,6 +67,12 @@ class ciFaceShift
 
 		//! Returns the \a i'th blendshape coefficient for the last frame received.
 		float getBlendshapeWeight( size_t i ) const;
+
+		//! Returns left eye rotation.
+		ci::Quatf getLeftEyeRotation() const;
+
+		//! Returns right eye rotation.
+		ci::Quatf getRightEyeRotation() const;
 
 	private:
 		void handleConnect( const boost::system::error_code& error,
@@ -99,8 +111,15 @@ class ciFaceShift
 
 		struct SpCoordf
 		{
-			float phi;
-			float theta;
+			float phi; //!< polar angle in degrees (-90, 90)
+			float theta; //!< azimuthal angle in degrees (-90, 90)
+
+			ci::Quatf toQuat() const
+			{
+				return ci::Quatf( ci::Vec3f( 0, 1, 0 ), ci::toRadians( phi ) ) *
+					   ci::Quatf( ci::Vec3f( 1, 0, 0 ), ci::toRadians( theta ) );
+			}
+
 		};
 		SpCoordf mLeftEyeRotation;
 		SpCoordf mRightEyeRotation;

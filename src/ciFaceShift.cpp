@@ -253,12 +253,26 @@ std::string ciFaceShift::getBlendshapeName( size_t i ) const
 
 const std::vector< float >& ciFaceShift::getBlendshapeWeights() const
 {
+	boost::lock_guard< boost::mutex > lock( mMutex );
 	return mBlendshapeWeights;
 }
 
 float ciFaceShift::getBlendshapeWeight( size_t i ) const
 {
+	boost::lock_guard< boost::mutex > lock( mMutex );
 	return mBlendshapeWeights[ i ];
+}
+
+Quatf ciFaceShift::getLeftEyeRotation() const
+{
+	boost::lock_guard< boost::mutex > lock( mMutex );
+	return mLeftEyeRotation.toQuat();
+}
+
+Quatf ciFaceShift::getRightEyeRotation() const
+{
+	boost::lock_guard< boost::mutex > lock( mMutex );
+	return mRightEyeRotation.toQuat();
 }
 
 } } // mndl::faceshift
