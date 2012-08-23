@@ -251,6 +251,12 @@ std::string ciFaceShift::getBlendshapeName( size_t i ) const
 	return sBlendshapeNames[ i ];
 }
 
+size_t ciFaceShift::getNumBlendshapes() const
+{
+	boost::lock_guard< boost::mutex > lock( mMutex );
+	return mBlendshapeWeights.size();
+}
+
 const std::vector< float >& ciFaceShift::getBlendshapeWeights() const
 {
 	boost::lock_guard< boost::mutex > lock( mMutex );

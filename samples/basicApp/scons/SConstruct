@@ -1,0 +1,8 @@
+env = Environment()
+
+env['APP_TARGET'] = 'basicApp'
+env['APP_SOURCES'] = ['basicApp.cpp']
+
+env = SConscript('../../../scons/SConscript', exports = 'env')
+
+SConscript('../../../../../scons/SConscript', exports = 'env')

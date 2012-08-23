@@ -65,6 +65,9 @@ class ciFaceShift
 		//! Returns the blendshape coefficients for the last frame received.
 		const std::vector< float >& getBlendshapeWeights() const;
 
+		//! Returns the total number of blendshapes.
+		size_t getNumBlendshapes() const;
+
 		//! Returns the \a i'th blendshape coefficient for the last frame received.
 		float getBlendshapeWeight( size_t i ) const;
 

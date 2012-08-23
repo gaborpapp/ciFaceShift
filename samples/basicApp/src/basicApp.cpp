@@ -27,13 +27,11 @@ using namespace ci;
 using namespace ci::app;
 using namespace std;
 
-class fsTestApp : public AppBasic
+class basicApp : public AppBasic
 {
 	public:
 		void prepareSettings( Settings *settings );
 		void setup();
-
-		void keyDown( KeyEvent event );
 
 		void update();
 		void draw();
@@ -51,12 +49,12 @@ class fsTestApp : public AppBasic
 		mndl::faceshift::ciFaceShift mFaceShift;
 };
 
-void fsTestApp::prepareSettings( Settings *settings )
+void basicApp::prepareSettings( Settings *settings )
 {
 	settings->setWindowSize( 800, 600 );
 }
 
-void fsTestApp::setup()
+void basicApp::setup()
 {
 	gl::disableVerticalSync();
 
@@ -71,8 +69,8 @@ void fsTestApp::setup()
 	const vector< float >& weights = mFaceShift.getBlendshapeWeights();
 	for ( size_t i = 0; i < weights.size(); ++i )
 	{
-		mParams.addParam( mFaceShift.getBlendshapeName( i )
-				, const_cast< float * >( &weights[ i ] ), "group=Blendshapes", true );
+		mParams.addParam( mFaceShift.getBlendshapeName( i ),
+				const_cast< float * >( &weights[ i ] ), "group=Blendshapes", true );
 	}
 
 	mParams.setOptions( "", "refresh=.1" );
@@ -80,7 +78,7 @@ void fsTestApp::setup()
 	mFaceShift.connect();
 }
 
-void fsTestApp::update()
+void basicApp::update()
 {
 	mTimestamp = mFaceShift.getTimestamp();
 	mTrackingSuccessful = mFaceShift.isTrackingSuccessful();
@@ -91,7 +89,7 @@ void fsTestApp::update()
 	mRightEyeRotation = mFaceShift.getRightEyeRotation();
 }
 
-void fsTestApp::draw()
+void basicApp::draw()
 {
 	gl::clear( Color::black() );
 
@@ -111,45 +109,5 @@ void fsTestApp::draw()
 	params::InterfaceGl::draw();
 }
 
-void fsTestApp::keyDown( KeyEvent event )
-{
-	switch ( event.getCode() )
-	{
-		case KeyEvent::KEY_f:
-			if ( !isFullScreen() )
-			{
-				setFullScreen( true );
-				if ( mParams.isVisible() )
-					showCursor();
-				else
-					hideCursor();
-			}
-			else
-			{
-				setFullScreen( false );
-				showCursor();
-			}
-			break;
-
-		case KeyEvent::KEY_s:
-			mParams.show( !mParams.isVisible() );
-			if ( isFullScreen() )
-			{
-				if ( mParams.isVisible() )
-					showCursor();
-				else
-					hideCursor();
-			}
-			break;
-
-		case KeyEvent::KEY_ESCAPE:
-			quit();
-			break;
-
-		default:
-			break;
-	}
-}
-
-CINDER_APP_BASIC( fsTestApp, RendererGl( RendererGl::AA_NONE ) )
+CINDER_APP_BASIC( basicApp, RendererGl )
 

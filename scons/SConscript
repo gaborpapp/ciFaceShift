@@ -1,0 +1,12 @@
+Import('env')
+
+_INCLUDES = [Dir('../src').abspath]
+
+_SOURCES = ['ciFaceShift.cpp']
+_SOURCES = [File('../src/' + s).abspath for s in _SOURCES]
+
+env.Append(APP_SOURCES = _SOURCES)
+env.Append(CPPPATH = _INCLUDES)
+env.Append(CCFLAGS = ['-DBOOST_REGEX_NO_LIB'])
+
+Return('env')
