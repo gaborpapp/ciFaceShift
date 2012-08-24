@@ -16,10 +16,14 @@
 */
 
 #include <iostream>
+#include <algorithm>
+#include <iterator>
 
 #include <boost/assign.hpp>
 
 #include "cinder/app/App.h"
+#include "cinder/DataSource.h"
+#include "cinder/ObjLoader.h"
 
 #include "ciFaceShift.h"
 
@@ -46,7 +50,8 @@ const std::vector< std::string > ciFaceShift::sBlendshapeNames =
 ciFaceShift::ciFaceShift() :
 	mSocket ( mIoService ),
 	mTimestamp( 0 ),
-	mTrackingSuccessful( false )
+	mTrackingSuccessful( false ),
+	mBlendNeedsUpdate( false )
 {
 	mBlendshapeWeights.assign( sBlendshapeNames.size(), 0.f );
 }
@@ -166,6 +171,7 @@ void ciFaceShift::handleRead( const boost::system::error_code& error )
 					{
 						readRaw( is, mBlendshapeWeights[ i ] );
 					}
+					mBlendNeedsUpdate = true;
 					break;
 				}
 
@@ -215,6 +221,50 @@ void ciFaceShift::doClose()
 void ciFaceShift::close()
 {
 	mIoService.post( boost::bind( &ciFaceShift::doClose, this ) );
+}
+
+
+void ciFaceShift::import( fs::path folder )
+{
+	fs::path dataPath = app::getAssetPath( folder );
+
+	std::vector< fs::path > folderContents;
+	copy( fs::directory_iterator( dataPath ), fs::directory_iterator(), std::back_inserter( folderContents ) );
+	std::sort( folderContents.begin(), folderContents.end() );
+
+	for ( std::vector< fs::path >::const_iterator it = folderContents.begin();
+			it != folderContents.end(); ++it )
+	{
+		if ( fs::is_regular_file( *it ) && ( it->extension().string() == ".obj" ) )
+		{
+			ObjLoader loader( loadFile( *it ) );
+			if ( it->filename().string() == "Neutral.obj" )
+			{
+				// no normals, with texcoords, no optimization
+				loader.load( &mNeutralMesh, false, true, false );
+			}
+			else
+			{
+				TriMesh trimesh;
+				// no normals, with texcoords, no optimization
+				loader.load( &trimesh, false, true, false );
+				mBlendshapeMeshes.push_back( trimesh );
+			}
+		}
+	}
+
+	const std::vector< Vec3f >& neutralVertices = mNeutralMesh.getVertices();
+	for ( std::vector< TriMesh >::iterator it = mBlendshapeMeshes.begin();
+			it != mBlendshapeMeshes.end(); ++it )
+	{
+		std::vector< Vec3f >& vertices = it->getVertices();
+		for ( size_t n = 0; n < vertices.size(); n++ )
+		{
+			vertices[ n ] -= neutralVertices[ n ];
+		}
+	}
+
+	mBlendMesh = mNeutralMesh;
 }
 
 Quatf ciFaceShift::getRotation() const
@@ -279,6 +329,33 @@ Quatf ciFaceShift::getRightEyeRotation() const
 {
 	boost::lock_guard< boost::mutex > lock( mMutex );
 	return mRightEyeRotation.toQuat();
+}
+
+ci::TriMesh& ciFaceShift::getBlendMesh()
+{
+	if ( !mBlendshapeMeshes.empty() && mBlendNeedsUpdate )
+	{
+		std::vector< Vec3f >& outputVertices = mBlendMesh.getVertices();
+		outputVertices = mNeutralMesh.getVertices();
+
+		for ( size_t i = 0; i < mBlendshapeWeights.size(); i++ )
+		{
+			float weight = getBlendshapeWeight( i );
+			std::vector< Vec3f >& blendshapeVertices = mBlendshapeMeshes[ i ].getVertices();
+			for ( size_t j = 0; j < outputVertices.size(); j++ )
+			{
+				outputVertices[ j ] += weight * blendshapeVertices[ j ];
+			}
+		}
+		mBlendNeedsUpdate = false;
+	}
+
+	return mBlendMesh;
+}
+
+const ci::TriMesh& ciFaceShift::getNeutralMesh() const
+{
+	return mNeutralMesh;
 }
 
 } } // mndl::faceshift

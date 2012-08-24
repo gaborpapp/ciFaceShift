@@ -21,8 +21,9 @@
 
 #include "cinder/Cinder.h"
 #include "cinder/CinderMath.h"
-#include "cinder/Vector.h"
 #include "cinder/Quaternion.h"
+#include "cinder/TriMesh.h"
+#include "cinder/Vector.h"
 
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
@@ -43,6 +44,11 @@ class ciFaceShift
 		void connect( std::string host = "127.0.0.1", std::string port = "33433" );
 		//! Closes the connection to fsStudio.
 		void close();
+
+		/*! Imports the contents of the fsStudio model export \a folder for
+		 * blending.
+		 */
+		void import( ci::fs::path folder );
 
 		//! Returns head orientation.
 		ci::Quatf getRotation() const;
@@ -76,6 +82,12 @@ class ciFaceShift
 
 		//! Returns right eye rotation.
 		ci::Quatf getRightEyeRotation() const;
+
+		//! Returns the blended mesh.
+		ci::TriMesh& getBlendMesh();
+
+		//! Returns the neutral mesh.
+		const ci::TriMesh& getNeutralMesh() const;
 
 	private:
 		void handleConnect( const boost::system::error_code& error,
@@ -130,6 +142,11 @@ class ciFaceShift
 		std::vector< ci::Vec3f > mMarkers;
 
 		static const std::vector< std::string > sBlendshapeNames;
+
+		std::vector< ci::TriMesh > mBlendshapeMeshes;
+		ci::TriMesh mNeutralMesh;
+		ci::TriMesh mBlendMesh;
+		bool mBlendNeedsUpdate;
 };
 
 } } // namespace mndl::faceshift

@@ -1,0 +1,9 @@
+env = Environment()
+
+env['APP_TARGET'] = 'blendApp'
+env['APP_SOURCES'] = ['blendApp.cpp']
+env['ASSETS'] = ['export/*.obj']
+
+env = SConscript('../../../scons/SConscript', exports = 'env')
+
+SConscript('../../../../../scons/SConscript', exports = 'env')
