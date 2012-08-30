@@ -2,7 +2,7 @@ env = Environment()
 
 env['APP_TARGET'] = 'gpuBlend'
 env['APP_SOURCES'] = ['gpuBlend.cpp']
-env['ASSETS'] = ['export/*.obj']
+env['ASSETS'] = ['export/*.trimesh']
 env['RESOURCES'] = ['Blend.vert', 'Blend.frag']
 env['DEBUG'] = 1
 

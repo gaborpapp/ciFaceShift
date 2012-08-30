@@ -66,7 +66,6 @@ class gpuBlendApp : public AppBasic
 
 		params::InterfaceGl mParams;
 		float mFps;
-		float mBlend;
 };
 
 void gpuBlendApp::prepareSettings( Settings *settings )
@@ -91,8 +90,6 @@ void gpuBlendApp::setup()
 
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 200, 300 ) );
 	mParams.addParam( "Fps", &mFps, "", false );
-	mBlend = 0;
-	mParams.addParam( "Blend", &mBlend, "min=0 max=1 step=.005" );
 
 	mFaceShift.import( "export" );
 
@@ -102,7 +99,7 @@ void gpuBlendApp::setup()
 
 	mFaceShift.connect();
 
-	//gl::enable( GL_CULL_FACE );
+	gl::enable( GL_CULL_FACE );
 }
 
 void gpuBlendApp::setupVbo()
@@ -124,7 +121,6 @@ void gpuBlendApp::setupVbo()
 							neutralMesh.getNumIndices(), layout, GL_TRIANGLES );
 
 	mVboMesh.bufferPositions( neutralMesh.getVertices() );
-	//mVboMesh.bufferPositions( mFaceShift.getBlendshapeMesh( 0 ).getVertices() );
 	mVboMesh.bufferIndices( neutralMesh.getIndices() );
 	//mVboMesh.bufferTexCoords2d( 0, neutralMesh.getTexCoords() );
 	mVboMesh.unbindBuffers();
@@ -155,7 +151,6 @@ void gpuBlendApp::setupVbo()
 	format.setMagFilter( GL_NEAREST );
 	format.setInternalFormat( GL_RGB32F_ARB );
 
-#if 1
 	int verticesPerRow = 32;
 	int txtWidth = verticesPerRow * numBlendShapes;
 	int txtHeight = math< float >::ceil( numVertices / (float)verticesPerRow );
@@ -170,33 +165,12 @@ void gpuBlendApp::setupVbo()
 		{
 			for ( size_t i = 0; i < numBlendShapes; i++ )
 			{
-				*( reinterpret_cast< Vec3f * >( ptr ) ) = mFaceShift.getBlendshapeMesh( i ).getVertices()[ idx ]; // - neutralMesh.getVertices()[ idx ];
+				*( reinterpret_cast< Vec3f * >( ptr ) ) = mFaceShift.getBlendshapeMesh( i ).getVertices()[ idx ] - neutralMesh.getVertices()[ idx ];
 				ptr += 3;
 			}
 			idx++;
 		}
 	}
-#endif
-
-#if 0
-	int verticesPerRow = 32;
-	int txtWidth = verticesPerRow;
-	int txtHeight = math< float >::ceil( numVertices / (float)verticesPerRow );
-
-	Surface32f blendshapeSurface = Surface32f( txtWidth, txtHeight, false );
-	float *ptr = blendshapeSurface.getData();
-
-	size_t idx = 0;
-	for ( int j = 0; j < txtHeight; j++ )
-	{
-		for ( int s = 0; s < verticesPerRow; s++ )
-		{
-			*( reinterpret_cast< Vec3f * >( ptr ) ) = mFaceShift.getBlendshapeMesh( 1 ).getVertices()[ idx ];
-			ptr += 3;
-			idx++;
-		}
-	}
-#endif
 
 	mBlendshapeTexture = gl::Texture( blendshapeSurface, format );
 }
@@ -222,8 +196,10 @@ void gpuBlendApp::draw()
 	gl::setViewport( getWindowBounds() );
 
 	mShader.bind();
-	mShader.uniform( "blend", mBlend );
+	const std::vector< float >& weights = mFaceShift.getBlendshapeWeights();
+	mShader.uniform( "blendshapeWeights", &( weights[ 0 ] ), weights.size() );
 	mBlendshapeTexture.enableAndBind();
+
 	gl::color( ColorA::gray( 1.0, .1 ) );
 	gl::enableAdditiveBlending();
 	gl::enableWireframe();
@@ -233,9 +209,11 @@ void gpuBlendApp::draw()
 	gl::draw( mVboMesh );
 	gl::popModelView();
 	gl::disableWireframe();
+
 	mBlendshapeTexture.unbind();
 	gl::disable( GL_TEXTURE_RECTANGLE_ARB );
 	gl::disableAlphaBlending();
+
 	mShader.unbind();
 
 	params::InterfaceGl::draw();
