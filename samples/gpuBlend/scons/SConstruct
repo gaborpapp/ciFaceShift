@@ -1,0 +1,11 @@
+env = Environment()
+
+env['APP_TARGET'] = 'gpuBlend'
+env['APP_SOURCES'] = ['gpuBlend.cpp']
+env['ASSETS'] = ['export/*.obj']
+env['RESOURCES'] = ['Blend.vert', 'Blend.frag']
+env['DEBUG'] = 1
+
+env = SConscript('../../../scons/SConscript', exports = 'env')
+
+SConscript('../../../../../scons/SConscript', exports = 'env')

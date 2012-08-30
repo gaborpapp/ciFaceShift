@@ -63,6 +63,8 @@ void blendApp::setup()
 
 	mFaceShift.import( "export" );
 	mFaceShift.connect();
+
+	gl::enable( GL_CULL_FACE );
 }
 
 void blendApp::update()

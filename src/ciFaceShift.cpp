@@ -223,8 +223,7 @@ void ciFaceShift::close()
 	mIoService.post( boost::bind( &ciFaceShift::doClose, this ) );
 }
 
-
-void ciFaceShift::import( fs::path folder )
+void ciFaceShift::import( fs::path folder, bool exportTrimesh /* = false */ )
 {
 	fs::path dataPath = app::getAssetPath( folder );
 
@@ -235,24 +234,54 @@ void ciFaceShift::import( fs::path folder )
 	for ( std::vector< fs::path >::const_iterator it = folderContents.begin();
 			it != folderContents.end(); ++it )
 	{
-		if ( fs::is_regular_file( *it ) && ( it->extension().string() == ".obj" ) )
+		if ( fs::is_regular_file( *it ) && ( it->extension().string() == ".obj" ) ||
+			 ( it->extension().string() == ".trimesh" ) )
 		{
-			ObjLoader loader( loadFile( *it ) );
-			if ( it->filename().string() == "Neutral.obj" )
+			if ( it->filename().extension().string() == ".obj" )
 			{
-				// no normals, with texcoords, no optimization
-				loader.load( &mNeutralMesh, false, true, false );
+				fs::path trimeshPath = *it;
+				trimeshPath.replace_extension( ".trimesh" );
+
+				if ( fs::exists( trimeshPath ) )
+					continue;
+
+				ObjLoader loader( loadFile( *it ) );
+				if ( it->filename().stem() == "Neutral" )
+				{
+					// no normals, with texcoords, no optimization
+					loader.load( &mNeutralMesh, false, true, false );
+
+					if ( exportTrimesh )
+						mNeutralMesh.write( writeFile( trimeshPath ) );
+				}
+				else
+				{
+					TriMesh trimesh;
+					// no normals, with texcoords, no optimization
+					loader.load( &trimesh, false, true, false );
+					mBlendshapeMeshes.push_back( trimesh );
+
+					if ( exportTrimesh )
+						trimesh.write( writeFile( trimeshPath ) );
+				}
 			}
-			else
+			else // .trimesh
 			{
-				TriMesh trimesh;
-				// no normals, with texcoords, no optimization
-				loader.load( &trimesh, false, true, false );
-				mBlendshapeMeshes.push_back( trimesh );
+				if ( it->filename().stem() == "Neutral" )
+				{
+					mNeutralMesh.read( loadFile( *it ) );
+				}
+				else
+				{
+					TriMesh trimesh;
+					trimesh.read( loadFile( *it ) );
+					mBlendshapeMeshes.push_back( trimesh );
+				}
 			}
 		}
 	}
 
+	/*
 	const std::vector< Vec3f >& neutralVertices = mNeutralMesh.getVertices();
 	for ( std::vector< TriMesh >::iterator it = mBlendshapeMeshes.begin();
 			it != mBlendshapeMeshes.end(); ++it )
@@ -263,6 +292,7 @@ void ciFaceShift::import( fs::path folder )
 			vertices[ n ] -= neutralVertices[ n ];
 		}
 	}
+	*/
 
 	mBlendMesh = mNeutralMesh;
 }
@@ -331,12 +361,18 @@ Quatf ciFaceShift::getRightEyeRotation() const
 	return mRightEyeRotation.toQuat();
 }
 
-ci::TriMesh& ciFaceShift::getBlendMesh()
+const TriMesh& ciFaceShift::getBlendshapeMesh( size_t i ) const
+{
+	return mBlendshapeMeshes[ i ];
+}
+
+TriMesh& ciFaceShift::getBlendMesh()
 {
 	if ( !mBlendshapeMeshes.empty() && mBlendNeedsUpdate )
 	{
 		std::vector< Vec3f >& outputVertices = mBlendMesh.getVertices();
-		outputVertices = mNeutralMesh.getVertices();
+		const std::vector< Vec3f >& neutralVertices = mNeutralMesh.getVertices();
+		outputVertices = neutralVertices;
 
 		for ( size_t i = 0; i < mBlendshapeWeights.size(); i++ )
 		{
@@ -344,7 +380,7 @@ ci::TriMesh& ciFaceShift::getBlendMesh()
 			std::vector< Vec3f >& blendshapeVertices = mBlendshapeMeshes[ i ].getVertices();
 			for ( size_t j = 0; j < outputVertices.size(); j++ )
 			{
-				outputVertices[ j ] += weight * blendshapeVertices[ j ];
+				outputVertices[ j ] += weight * ( blendshapeVertices[ j ] - neutralVertices[ j ] );
 			}
 		}
 		mBlendNeedsUpdate = false;

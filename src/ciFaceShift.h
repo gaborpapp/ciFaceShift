@@ -46,9 +46,11 @@ class ciFaceShift
 		void close();
 
 		/*! Imports the contents of the fsStudio model export \a folder for
-		 * blending.
+		 * blending. Converts the Wavefront .obj files to .trimesh if
+		 * \a exportTrimesh is true. If .obj and .trimesh files exist with the
+		 * same name, the .trimesh is loaded, which is much faster.
 		 */
-		void import( ci::fs::path folder );
+		void import( ci::fs::path folder, bool exportTrimesh = false );
 
 		//! Returns head orientation.
 		ci::Quatf getRotation() const;
@@ -82,6 +84,9 @@ class ciFaceShift
 
 		//! Returns right eye rotation.
 		ci::Quatf getRightEyeRotation() const;
+
+		//! Returns the \a i'th blendshape mesh.
+		const ci::TriMesh& getBlendshapeMesh( size_t i ) const;
 
 		//! Returns the blended mesh.
 		ci::TriMesh& getBlendMesh();
