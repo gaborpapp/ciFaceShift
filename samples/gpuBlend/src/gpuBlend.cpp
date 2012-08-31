@@ -22,6 +22,7 @@
 #include "cinder/ip/Flip.h"
 #include "cinder/gl/gl.h"
 #include "cinder/gl/GlslProg.h"
+#include "cinder/gl/Material.h"
 #include "cinder/gl/Texture.h"
 #include "cinder/gl/Vbo.h"
 #include "cinder/params/Params.h"
@@ -60,12 +61,14 @@ class gpuBlendApp : public AppBasic
 		gl::VboMesh mVboMesh;
 		gl::Texture mBlendshapeTexture;
 		gl::GlslProg mShader;
+		gl::Material mMaterial;
 		void setupVbo();
 
 		mndl::faceshift::ciFaceShift mFaceShift;
 
 		params::InterfaceGl mParams;
 		float mFps;
+		bool mFlatShading;
 };
 
 void gpuBlendApp::prepareSettings( Settings *settings )
@@ -90,8 +93,10 @@ void gpuBlendApp::setup()
 
 	mParams = params::InterfaceGl( "Parameters", Vec2i( 200, 300 ) );
 	mParams.addParam( "Fps", &mFps, "", false );
+	mFlatShading = false;
+	mParams.addParam( "Flat shading", &mFlatShading );
 
-	mFaceShift.import( "export" );
+	mFaceShift.import( "export", true );
 
 	mEyeDistance = -300;
 
@@ -104,15 +109,16 @@ void gpuBlendApp::setup()
 
 void gpuBlendApp::setupVbo()
 {
-	const TriMesh& neutralMesh = mFaceShift.getNeutralMesh();
+	TriMesh neutralMesh = mFaceShift.getNeutralMesh();
 	size_t numVertices = neutralMesh.getNumVertices();
 	size_t numBlendShapes = mFaceShift.getNumBlendshapes();
 
 	gl::VboMesh::Layout layout;
 
 	layout.setStaticPositions();
-	//layout.setStaticTexCoords2d();
 	layout.setStaticIndices();
+	layout.setStaticNormals();
+	//layout.setStaticTexCoords2d();
 
 	// TODO: int attribute
 	layout.mCustomStatic.push_back( std::make_pair( gl::VboMesh::Layout::CUSTOM_ATTR_FLOAT, 0 ) );
@@ -122,6 +128,9 @@ void gpuBlendApp::setupVbo()
 
 	mVboMesh.bufferPositions( neutralMesh.getVertices() );
 	mVboMesh.bufferIndices( neutralMesh.getIndices() );
+	if ( !neutralMesh.hasNormals() )
+		neutralMesh.recalculateNormals();
+	mVboMesh.bufferNormals( neutralMesh.getNormals() );
 	//mVboMesh.bufferTexCoords2d( 0, neutralMesh.getTexCoords() );
 	mVboMesh.unbindBuffers();
 
@@ -130,7 +139,7 @@ void gpuBlendApp::setupVbo()
 		vertexIndices[ i ] = static_cast< float >( i );
 
 	mVboMesh.getStaticVbo().bind();
-	size_t offset = sizeof( GLfloat ) * 3 * neutralMesh.getNumVertices();
+	size_t offset = sizeof( GLfloat ) * 6 * neutralMesh.getNumVertices();
 	mVboMesh.getStaticVbo().bufferSubData( offset,
 			numVertices * sizeof( float ),
 			&vertexIndices[ 0 ] );
@@ -173,6 +182,8 @@ void gpuBlendApp::setupVbo()
 	}
 
 	mBlendshapeTexture = gl::Texture( blendshapeSurface, format );
+
+	mMaterial = gl::Material( Color::gray( .0 ), Color::gray( .5 ), Color::white(), 50.f );
 }
 
 void gpuBlendApp::update()
@@ -198,21 +209,21 @@ void gpuBlendApp::draw()
 	mShader.bind();
 	const std::vector< float >& weights = mFaceShift.getBlendshapeWeights();
 	mShader.uniform( "blendshapeWeights", &( weights[ 0 ] ), weights.size() );
+	mShader.uniform( "flatShading", mFlatShading );
 	mBlendshapeTexture.enableAndBind();
 
-	gl::color( ColorA::gray( 1.0, .1 ) );
-	gl::enableAdditiveBlending();
-	gl::enableWireframe();
+	gl::enableDepthRead();
+	gl::enableDepthWrite();
+	gl::color( ColorA::gray( 1., 1. ) );
+	mMaterial.apply();
 	gl::pushModelView();
 	gl::rotate( mArcball.getQuat() );
 	gl::rotate( mHeadRotation );
 	gl::draw( mVboMesh );
 	gl::popModelView();
-	gl::disableWireframe();
 
 	mBlendshapeTexture.unbind();
 	gl::disable( GL_TEXTURE_RECTANGLE_ARB );
-	gl::disableAlphaBlending();
 
 	mShader.unbind();
 

@@ -248,8 +248,8 @@ void ciFaceShift::import( fs::path folder, bool exportTrimesh /* = false */ )
 				ObjLoader loader( loadFile( *it ) );
 				if ( it->filename().stem() == "Neutral" )
 				{
-					// no normals, with texcoords, no optimization
-					loader.load( &mNeutralMesh, false, true, false );
+					// no normals, with texcoords, optimization
+					loader.load( &mNeutralMesh, false, true, true );
 
 					if ( exportTrimesh )
 						mNeutralMesh.write( writeFile( trimeshPath ) );
@@ -257,8 +257,8 @@ void ciFaceShift::import( fs::path folder, bool exportTrimesh /* = false */ )
 				else
 				{
 					TriMesh trimesh;
-					// no normals, with texcoords, no optimization
-					loader.load( &trimesh, false, true, false );
+					// no normals, with texcoords, optimization
+					loader.load( &trimesh, false, true, true );
 					mBlendshapeMeshes.push_back( trimesh );
 
 					if ( exportTrimesh )
