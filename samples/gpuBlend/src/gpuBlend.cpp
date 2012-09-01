@@ -19,6 +19,7 @@
 #include "cinder/Arcball.h"
 #include "cinder/Camera.h"
 #include "cinder/Cinder.h"
+#include "cinder/ImageIo.h"
 #include "cinder/ip/Flip.h"
 #include "cinder/gl/gl.h"
 #include "cinder/gl/GlslProg.h"
@@ -60,6 +61,7 @@ class gpuBlendApp : public AppBasic
 
 		gl::VboMesh mVboMesh;
 		gl::Texture mBlendshapeTexture;
+		gl::Texture mHeadTexture;
 		gl::GlslProg mShader;
 		gl::Material mMaterial;
 		void setupVbo();
@@ -102,6 +104,10 @@ void gpuBlendApp::setup()
 
 	setupVbo();
 
+	Surface headImg = loadImage( loadAsset( "loki2.png" ) );
+	ip::flipVertical( &headImg );
+	mHeadTexture = gl::Texture( headImg );
+
 	mFaceShift.connect();
 
 	gl::enable( GL_CULL_FACE );
@@ -118,7 +124,7 @@ void gpuBlendApp::setupVbo()
 	layout.setStaticPositions();
 	layout.setStaticIndices();
 	layout.setStaticNormals();
-	//layout.setStaticTexCoords2d();
+	layout.setStaticTexCoords2d();
 
 	// TODO: int attribute
 	layout.mCustomStatic.push_back( std::make_pair( gl::VboMesh::Layout::CUSTOM_ATTR_FLOAT, 0 ) );
@@ -131,7 +137,7 @@ void gpuBlendApp::setupVbo()
 	if ( !neutralMesh.hasNormals() )
 		neutralMesh.recalculateNormals();
 	mVboMesh.bufferNormals( neutralMesh.getNormals() );
-	//mVboMesh.bufferTexCoords2d( 0, neutralMesh.getTexCoords() );
+	mVboMesh.bufferTexCoords2d( 0, neutralMesh.getTexCoords() );
 	mVboMesh.unbindBuffers();
 
 	vector< float > vertexIndices( numVertices, 0.f );
@@ -139,7 +145,7 @@ void gpuBlendApp::setupVbo()
 		vertexIndices[ i ] = static_cast< float >( i );
 
 	mVboMesh.getStaticVbo().bind();
-	size_t offset = sizeof( GLfloat ) * 6 * neutralMesh.getNumVertices();
+	size_t offset = sizeof( GLfloat ) * ( 3 + 3 + 2 ) * neutralMesh.getNumVertices();
 	mVboMesh.getStaticVbo().bufferSubData( offset,
 			numVertices * sizeof( float ),
 			&vertexIndices[ 0 ] );
@@ -149,6 +155,7 @@ void gpuBlendApp::setupVbo()
 	GLint location = mShader.getAttribLocation( "index" );
 	mVboMesh.setCustomStaticLocation( 0, location );
 	mShader.uniform( "blendshapes", 0 );
+	mShader.uniform( "tex", 1 );
 	mShader.uniform( "numBlendshapes", static_cast< int >( numBlendShapes ) );
 	mShader.unbind();
 
@@ -210,7 +217,11 @@ void gpuBlendApp::draw()
 	const std::vector< float >& weights = mFaceShift.getBlendshapeWeights();
 	mShader.uniform( "blendshapeWeights", &( weights[ 0 ] ), weights.size() );
 	mShader.uniform( "flatShading", mFlatShading );
-	mBlendshapeTexture.enableAndBind();
+
+	gl::enable( GL_TEXTURE_RECTANGLE_ARB );
+	gl::enable( GL_TEXTURE_2D );
+	mBlendshapeTexture.bind( 0 );
+	mHeadTexture.bind( 1 );
 
 	gl::enableDepthRead();
 	gl::enableDepthWrite();
@@ -224,6 +235,7 @@ void gpuBlendApp::draw()
 
 	mBlendshapeTexture.unbind();
 	gl::disable( GL_TEXTURE_RECTANGLE_ARB );
+	gl::disable( GL_TEXTURE_2D );
 
 	mShader.unbind();
 

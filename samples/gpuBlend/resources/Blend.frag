@@ -1,6 +1,7 @@
 varying vec3 v;
 varying vec3 N;
 
+uniform sampler2D tex;
 uniform bool flatShading;
 
 void main()
@@ -28,7 +29,8 @@ void main()
 	Ispec *= pow( max( dot( R, E ), 0. ), gl_FrontMaterial.shininess );
 	Ispec = clamp( Ispec, 0., 1. );
 
+	vec4 col = texture2D( tex, gl_TexCoord[ 0 ].st );
 	// final color
-	gl_FragColor = Iamb + Idiff + Ispec;
+	gl_FragColor = col * ( Iamb + Idiff + Ispec );
 }
 
