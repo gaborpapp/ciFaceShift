@@ -59,7 +59,8 @@ ciFaceShift::ciFaceShift() :
 ciFaceShift::~ciFaceShift()
 {
 	close();
-	mThread->join();
+	if ( mThread )
+		mThread->join();
 }
 
 void ciFaceShift::connect( std::string host /* = "127.0.0.1" */,
