@@ -61,6 +61,7 @@ class gpuBlendApp : public AppBasic
 
 		gl::VboMesh mVboMesh;
 		gl::Texture mBlendshapeTexture;
+		gl::Texture mNormalsTexture;
 		gl::Texture mHeadTexture;
 		gl::GlslProg mShader;
 		gl::Material mMaterial;
@@ -155,7 +156,8 @@ void gpuBlendApp::setupVbo()
 	GLint location = mShader.getAttribLocation( "index" );
 	mVboMesh.setCustomStaticLocation( 0, location );
 	mShader.uniform( "blendshapes", 0 );
-	mShader.uniform( "tex", 1 );
+	mShader.uniform( "normals", 1 );
+	mShader.uniform( "tex", 2 );
 	mShader.uniform( "numBlendshapes", static_cast< int >( numBlendShapes ) );
 	mShader.unbind();
 
@@ -190,6 +192,26 @@ void gpuBlendApp::setupVbo()
 
 	mBlendshapeTexture = gl::Texture( blendshapeSurface, format );
 
+	// normals texture
+	Surface32f normalsSurface = Surface32f( txtWidth, txtHeight, false );
+	ptr = normalsSurface.getData();
+
+	idx = 0;
+	for ( int j = 0; j < txtHeight; j++ )
+	{
+		for ( int s = 0; s < verticesPerRow; s++ )
+		{
+			for ( size_t i = 0; i < numBlendShapes; i++ )
+			{
+				*( reinterpret_cast< Vec3f * >( ptr ) ) = mFaceShift.getBlendshapeMesh( i ).getNormals()[ idx ];
+				ptr += 3;
+			}
+			idx++;
+		}
+	}
+
+	mNormalsTexture = gl::Texture( normalsSurface, format );
+
 	mMaterial = gl::Material( Color::gray( .0 ), Color::gray( .5 ), Color::white(), 50.f );
 }
 
@@ -221,7 +243,8 @@ void gpuBlendApp::draw()
 	gl::enable( GL_TEXTURE_RECTANGLE_ARB );
 	gl::enable( GL_TEXTURE_2D );
 	mBlendshapeTexture.bind( 0 );
-	mHeadTexture.bind( 1 );
+	mNormalsTexture.bind( 1 );
+	mHeadTexture.bind( 2 );
 
 	gl::enableDepthRead();
 	gl::enableDepthWrite();

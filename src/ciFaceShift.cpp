@@ -251,6 +251,10 @@ void ciFaceShift::import( fs::path folder, bool exportTrimesh /* = false */ )
 				{
 					// no normals, with texcoords, optimization
 					loader.load( &mNeutralMesh, false, true, true );
+					// the original faceshift models have no normals, it is
+					// better to recalculate the smooth normals
+					if ( !mNeutralMesh.hasNormals() )
+						mNeutralMesh.recalculateNormals();
 
 					if ( exportTrimesh )
 						mNeutralMesh.write( writeFile( trimeshPath ) );
@@ -260,6 +264,8 @@ void ciFaceShift::import( fs::path folder, bool exportTrimesh /* = false */ )
 					TriMesh trimesh;
 					// no normals, with texcoords, optimization
 					loader.load( &trimesh, false, true, true );
+					if ( !trimesh.hasNormals() )
+						trimesh.recalculateNormals();
 					mBlendshapeMeshes.push_back( trimesh );
 
 					if ( exportTrimesh )

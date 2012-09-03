@@ -3,9 +3,9 @@ env = Environment()
 env['APP_TARGET'] = 'gpuBlend'
 env['APP_SOURCES'] = ['gpuBlend.cpp']
 env['ASSETS'] = ['export/*.trimesh', 'loki2.png']
-#env['ASSETS'] = ['export/*.obj']
+#env['ASSETS'] = ['export/*.obj', 'loki2.png']
 env['RESOURCES'] = ['Blend.vert', 'Blend.frag']
-env['DEBUG'] = 1
+env['DEBUG'] = 0
 
 env = SConscript('../../../scons/SConscript', exports = 'env')
 
