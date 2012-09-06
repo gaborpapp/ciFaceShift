@@ -14,6 +14,7 @@
  You should have received a copy of the GNU General Public License
  along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -137,7 +138,7 @@ class ciFaceShift
 			ci::Quatf toQuat() const
 			{
 				return ci::Quatf( ci::Vec3f( 0, 1, 0 ), ci::toRadians( phi ) ) *
-					   ci::Quatf( ci::Vec3f( 1, 0, 0 ), ci::toRadians( theta ) );
+					   ci::Quatf( ci::Vec3f( 1, 0, 0 ), ci::toRadians( -theta ) );
 			}
 
 		};
